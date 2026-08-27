@@ -10,20 +10,22 @@ Open `index.html`, search for `DONATE CONFIG` (near the top of the `<script>` bl
 
 ```js
 var DONATE = {
-  paypalUsername: 'yourname',        // from paypal.me/yourname
-  stripeLink: 'https://buy.stripe.com/your-payment-link',
-  wallets: [
-    { symbol: 'BTC', label: 'Bitcoin', address: 'your-btc-address-here' },
-    { symbol: 'ETH', label: 'Ethereum', address: 'your-eth-address-here' }
-  ]
+  paystackLink: 'https://paystack.com/pay/your-page-slug',
+  binance: {
+    qrImage: 'data:image/png;base64,...',  // already filled in with your QR
+    binancePayId: 'Blockchain enthusiastic'
+  }
 };
 ```
 
-**PayPal** — create a free link at [paypal.me](https://www.paypal.me), use the username part after the slash.
+**Paystack ("Card / Bank")** —
+1. Sign up free at [paystack.com](https://paystack.com) (supports businesses based in Nigeria, Ghana, South Africa, Kenya, and a few other African markets — but **payers can be from anywhere in the world**, paying by card).
+2. In the dashboard: **Revenue → Payment Pages → Create page**. Set an amount or let visitors choose, give it a name.
+3. Copy the generated `https://paystack.com/pay/...` link and paste it into `paystackLink` above.
 
-**Stripe** — in the [Stripe Dashboard](https://dashboard.stripe.com), go to Payment links → New, set an amount (or let people choose), and paste the generated `https://buy.stripe.com/...` URL.
+**Binance Pay** — already set up with your QR code baked into the file. Nothing to do unless you want to swap it for a new one later (see the note in the code comments).
 
-**Crypto** — paste your own wallet addresses. Double check them — there's no way to reverse a crypto payment sent to the wrong address.
+We removed the PayPal option since PayPal.me isn't reliably available for Nigeria-based accounts yet — Paystack is the more dependable option for you right now, and it settles directly without needing a middleman app.
 
 ## Set up the suggestion box (optional)
 

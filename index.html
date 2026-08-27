@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Vitals Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d2130;
+    --bg-deep: #081620;
+    --panel: #12293b;
+    --panel-hi: #17324a;
+    --line: #24455c;
+    --trace: #8fe3c1;
+    --trace-dim: #4d7f74;
+    --alert: #ff5a4e;
+    --amber: #f2a93b;
+    --text: #eaf2f2;
+    --muted: #7f98a3;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #123246 0%, var(--bg) 55%, var(--bg-deep) 100%);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Space Mono',monospace;}
+  button{font-family:inherit;}
+  #app{max-width:640px;margin:0 auto;padding:0 18px 60px;min-height:100vh;}
+
+  /* ---------- Top bar / ECG signature ---------- */
+  .topbar{padding:22px 2px 10px;}
+  .brand-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;}
+  .brand{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:20px;
+    letter-spacing:0.5px;
+    color:var(--text);
+  }
+  .brand span{color:var(--trace);}
+  .brand-tag{font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+
+  .ecg-wrap{
+    position:relative;
+    height:64px;
+    border-radius:10px;
+    background:var(--bg-deep);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .ecg-wrap svg{position:absolute;top:0;left:0;width:200%;height:100%;}
+  .ecg-line{
+    fill:none;
+    stroke:var(--trace);
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 0 4px rgba(143,227,193,0.55));
+    animation:ecg-scroll 4.5s linear infinite;
+  }
+  @keyframes ecg-scroll{
+    from{transform:translateX(0);}
+    to{transform:translateX(-50%);}
+  }
+  .ecg-grid{position:absolute;inset:0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(143,227,193,0.06) 0 1px, transparent 1px 24px),
+      repeating-linear-gradient(0deg, rgba(143,227,193,0.06) 0 1px, transparent 1px 24px);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .ecg-line{animation:none;}
+  }
+
+  /* ---------- Hub grid ---------- */
+  .hub-intro{margin:22px 2px 16px;}
+  .hub-intro h1{font-size:15px;margin:0 0 4px;color:var(--muted);font-weight:600;letter-spacing:.3px;}
+  .hub-intro p{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
+  @media (max-width:420px){.grid{grid-template-columns:1fr;}}
+
+  .card{
+    background:linear-gradient(180deg, var(--panel-hi), var(--panel));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 14px 14px;
+    text-align:left;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition:transform .15s ease, border-color .15s ease;
+    display:flex;flex-direction:column;gap:10px;
+    min-height:168px;
+  }
+  .card:hover{transform:translateY(-2px);border-color:var(--trace-dim);}
+  .card:focus-visible{outline:2px solid var(--trace);outline-offset:2px;}
+  .card:active{transform:translateY(0);}
+  .card-preview{height:52px;border-radius:8px;background:var(--bg-deep);position:relative;overflow:hidden;border:1px solid var(--line);}
+  .card-num{
+    position:absolute;top:10px;right:12px;
+    font-size:10px;color:var(--muted);letter-spacing:1px;
+  }
+  .card h3{margin:0;font-size:15px;font-weight:700;}
+  .card p{margin:0;font-size:12px;color:var(--muted);line-height:1.4;flex-grow:1;}
+  .card .go{font-size:11px;color:var(--trace);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+
+  /* mini previews */
+  .mp-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--amber);top:50%;left:50%;transform:translate(-50%,-50%);}
+  .mp-track{position:absolute;left:50%;top:6px;bottom:6px;width:2px;background:var(--line);transform:translateX(-50%);}
+  .mp-marker{position:absolute;left:50%;width:10px;height:10px;border-radius:50%;background:var(--trace);transform:translate(-50%,-50%);}
+  .mp-flash{position:absolute;inset:8px;border-radius:6px;}
+  .mp-pulse{position:absolute;left:50%;top:50%;width:14px;height:14px;border-radius:50%;background:var(--alert);transform:translate(-50%,-50%);}
+  .mp-bar{position:absolute;left:8px;right:8px;top:50%;height:4px;background:var(--line);border-radius:2px;transform:translateY(-50%);}
+  .mp-zone{position:absolute;top:50%;height:14px;width:16%;background:rgba(143,227,193,0.25);border:1px solid var(--trace-dim);border-radius:3px;transform:translateY(-50%);left:42%;}
+  .mp-ball{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:var(--amber);transform:translate(-50%,-50%);}
+
+  /* ---------- Game view ---------- */
+  #game-view{padding-top:10px;}
+  .game-header{display:flex;align-items:center;gap:10px;margin:14px 0 6px;}
+  .back-btn{
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    width:34px;height:34px;border-radius:9px;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .back-btn:hover{border-color:var(--trace-dim);}
+  .game-title{font-size:17px;font-weight:800;margin:0;}
+  .game-sub{font-size:12px;color:var(--muted);margin:0 0 18px;line-height:1.5;}
+
+  .stage{
+    background:linear-gradient(180deg, var(--panel-hi), var(--panel));
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 16px;
+    min-height:360px;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:22px;
+    position:relative;
+  }
+  .status-pill{
+    font-family:'Space Mono',monospace;
+    font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+    padding:5px 12px;border-radius:20px;background:var(--bg-deep);
+    border:1px solid var(--line);color:var(--muted);
+  }
+  .status-pill.live{color:var(--alert);border-color:rgba(255,90,78,0.4);}
+  .status-pill.go{color:var(--trace);border-color:rgba(143,227,193,0.4);}
+
+  .big-readout{font-family:'Space Mono',monospace;font-size:46px;font-weight:700;letter-spacing:1px;}
+  .action-btn{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:15px;
+    background:var(--trace);color:#062018;border:none;border-radius:12px;
+    padding:16px 34px;cursor:pointer;letter-spacing:.3px;
+    box-shadow:0 6px 0 var(--trace-dim);
+    transition:transform .08s ease, box-shadow .08s ease;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;user-select:none;
+  }
+  .action-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--trace-dim);}
+  .action-btn.alt{background:var(--amber);box-shadow:0 6px 0 #9c7222;}
+  .action-btn.alt:active{box-shadow:0 2px 0 #9c7222;}
+  .action-btn.danger{background:var(--alert);box-shadow:0 6px 0 #a53329;}
+  .action-btn.danger:active{box-shadow:0 2px 0 #a53329;}
+  .action-btn:disabled{opacity:.4;box-shadow:none;transform:none;cursor:default;}
+
+  .hint{font-size:12px;color:var(--muted);text-align:center;max-width:260px;}
+
+  /* hold track */
+  .hold-track-wrap{width:70px;height:230px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .hold-track{position:relative;width:10px;flex:1;background:var(--bg-deep);border-radius:6px;border:1px solid var(--line);overflow:visible;}
+  .hold-zone{position:absolute;left:-30px;width:70px;font-size:9px;color:var(--muted);text-align:right;padding-right:6px;letter-spacing:.5px;}
+  .hold-zone-line{position:absolute;left:0;right:0;height:1px;background:var(--line);}
+  .hold-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg, var(--trace), var(--amber));border-radius:6px;height:0%;}
+  .hold-marker{position:absolute;left:50%;width:20px;height:20px;border-radius:50%;background:var(--text);border:3px solid var(--amber);transform:translate(-50%,50%);bottom:0%;box-shadow:0 0 10px rgba(242,169,59,0.7);}
+
+  /* reflex flash zone */
+  .reflex-zone{
+    width:220px;height:220px;border-radius:20px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Mono',monospace;font-weight:700;font-size:16px;
+    text-align:center;padding:20px;cursor:pointer;
+    transition:background .05s ease;
+    user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  .reflex-wait{background:var(--bg-deep);color:var(--muted);border:2px dashed var(--line);}
+  .reflex-go{background:var(--trace);color:#062018;border:2px solid var(--trace);}
+  .reflex-early{background:var(--alert);color:#2a0805;border:2px solid var(--alert);}
+
+  /* pulse */
+  .pulse-circle{
+    width:120px;height:120px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ff8478, var(--alert));
+    box-shadow:0 0 0 6px rgba(255,90,78,0.15);
+    transition:transform .08s ease;
+  }
+  .pulse-taplog{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:280px;}
+  .taplog-chip{font-family:'Space Mono',monospace;font-size:11px;padding:4px 8px;border-radius:6px;background:var(--bg-deep);border:1px solid var(--line);color:var(--muted);}
+  .taplog-chip.good{color:var(--trace);border-color:var(--trace-dim);}
+  .taplog-chip.bad{color:var(--alert);border-color:rgba(255,90,78,0.4);}
+
+  /* steady hand */
+  .sh-bar-wrap{width:100%;max-width:320px;}
+  .sh-bar{position:relative;height:14px;background:var(--bg-deep);border-radius:8px;border:1px solid var(--line);margin-bottom:24px;}
+  .sh-zone{position:absolute;top:-4px;bottom:-4px;background:rgba(143,227,193,0.22);border:1px solid var(--trace-dim);border-radius:6px;}
+  .sh-ball{position:absolute;top:50%;width:24px;height:24px;border-radius:50%;background:var(--amber);border:3px solid var(--text);transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(242,169,59,0.6);}
+
+  /* results */
+  .result-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;}
+  .result-tier{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--trace);}
+  .result-metric{font-size:13px;color:var(--muted);}
+  .result-metric b{color:var(--text);font-family:'Space Mono',monospace;}
+  .btn-row{display:flex;gap:10px;margin-top:6px;}
+  .action-btn.small{padding:11px 20px;font-size:13px;}
+  .ghost-btn{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:11px 20px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .ghost-btn:hover{color:var(--text);border-color:var(--trace-dim);}
+
+  /* ---------- Support / donate ---------- */
+  .support-btn{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-size:11px;letter-spacing:.5px;padding:7px 12px;border-radius:20px;
+    cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;
+  }
+  .support-btn:hover{color:var(--amber);border-color:var(--amber);}
+
+  .tab-row{display:flex;gap:8px;width:100%;max-width:320px;}
+  .tab-btn{
+    flex:1;background:var(--bg-deep);border:1px solid var(--line);color:var(--muted);
+    font-size:12px;font-weight:700;letter-spacing:.3px;padding:10px 6px;border-radius:9px;
+    cursor:pointer;
+  }
+  .tab-btn.active{color:var(--bg-deep);background:var(--trace);border-color:var(--trace);}
+
+  .support-panel{width:100%;display:flex;flex-direction:column;align-items:center;gap:16px;}
+  .donate-link-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;max-width:280px;text-decoration:none;
+    font-weight:700;font-size:14px;border-radius:12px;padding:14px 18px;
+    color:#062018;box-shadow:0 6px 0 rgba(0,0,0,0.25);
+  }
+  .donate-link-btn.paystack{background:#00c3f3;color:#04222b;box-shadow:0 6px 0 #0a8ba8;}
+  .donate-link-btn:active{transform:translateY(3px);box-shadow:none;}
+
+  .wallet-card{
+    width:100%;background:var(--bg-deep);border:1px solid var(--line);border-radius:12px;
+    padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  }
+  .wallet-label{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;}
+  .wallet-qr{width:120px;height:120px;border-radius:8px;background:#fff;padding:6px;}
+  .wallet-addr-row{display:flex;align-items:center;gap:8px;width:100%;}
+  .wallet-addr{
+    flex:1;font-family:'Space Mono',monospace;font-size:11px;color:var(--text);
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .copy-btn{
+    background:var(--panel);border:1px solid var(--line);color:var(--trace);
+    font-size:11px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;flex-shrink:0;
+  }
+  .copy-btn:hover{border-color:var(--trace);}
+  .copy-btn.copied{background:var(--trace);color:var(--bg-deep);border-color:var(--trace);}
+
+  /* balance test */
+  .bal-zone{
+    width:160px;height:160px;border-radius:50%;
+    background:var(--bg-deep);border:2px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;position:relative;
+    touch-action:none;-webkit-tap-highlight-color:transparent;
+  }
+  .bal-zone.active{border-color:var(--trace);}
+  .bal-dot{width:28px;height:28px;border-radius:50%;background:var(--trace);box-shadow:0 0 12px rgba(143,227,193,0.6);}
+  .bal-ring{
+    position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(var(--trace) calc(var(--p,0)*1%), transparent 0);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    mask:radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  }
+
+  /* tap speed */
+  .tap-count{font-family:'Space Mono',monospace;font-size:64px;font-weight:700;line-height:1;}
+  .tap-target{
+    width:180px;height:180px;border-radius:50%;
+    background:var(--amber);color:#3a2a05;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:16px;letter-spacing:.5px;
+    box-shadow:0 8px 0 #9c7222;
+    cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;
+  }
+  .tap-target:active{transform:translateY(6px);box-shadow:0 2px 0 #9c7222;}
+
+  /* memory */
+  .mem-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:200px;height:200px;}
+  .mem-tile{border-radius:12px;border:1px solid var(--line);cursor:pointer;transition:filter .1s ease, transform .06s ease;}
+  .mem-tile:active{transform:scale(0.96);}
+  .mem-tile.t0{background:#1c4a68;} .mem-tile.t1{background:#5c3a12;} .mem-tile.t2{background:#5c1f1a;} .mem-tile.t3{background:#1f4a3d;}
+  .mem-tile.lit.t0{background:#3fa9df;} .mem-tile.lit.t1{background:var(--amber);} .mem-tile.lit.t2{background:var(--alert);} .mem-tile.lit.t3{background:var(--trace);}
+  .mem-level{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);}
+
+  /* breathing */
+  .breathe-circle{
+    width:140px;height:140px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #a9f0d8, var(--trace));
+    transform:scale(0.7);
+    transition:transform 4s ease-in-out;
+    box-shadow:0 0 0 8px rgba(143,227,193,0.12);
+  }
+  .breathe-label{font-family:'Space Mono',monospace;font-size:15px;letter-spacing:2px;color:var(--trace);text-transform:uppercase;}
+  .breathe-cycles{font-size:12px;color:var(--muted);}
+  .mood-row{display:flex;gap:8px;}
+  .mood-btn{
+    background:var(--bg-deep);border:1px solid var(--line);color:var(--text);
+    font-size:12px;padding:9px 14px;border-radius:10px;cursor:pointer;
+  }
+  .mood-btn:hover{border-color:var(--trace);}
+
+  /* ---------- Feedback / suggestions ---------- */
+  .suggest-btn{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-size:11px;letter-spacing:.5px;padding:7px 12px;border-radius:20px;
+    cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;
+  }
+  .suggest-btn:hover{color:var(--trace);border-color:var(--trace);}
+  .icon-btn-row{display:flex;gap:8px;}
+
+  .feedback-form{width:100%;display:flex;flex-direction:column;gap:12px;}
+  .feedback-form label{font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;}
+  .feedback-form input, .feedback-form textarea{
+    width:100%;background:var(--bg-deep);border:1px solid var(--line);border-radius:10px;
+    color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:11px 12px;resize:vertical;
+  }
+  .feedback-form input:focus, .feedback-form textarea:focus{outline:none;border-color:var(--trace);}
+  .feedback-form textarea{min-height:100px;}
+  .feedback-status{font-size:12px;color:var(--trace);text-align:center;min-height:16px;}
+  .feedback-status.error{color:var(--alert);}
+
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="brand-row">
+      <div class="brand">VITALS<span>ARCADE</span></div>
+      <div class="icon-btn-row">
+        <button class="suggest-btn" id="suggest-btn">&#128161; Suggest</button>
+        <button class="support-btn" id="support-btn">&#9749; Support</button>
+      </div>
+    </div>
+    <div class="ecg-wrap" aria-hidden="true">
+      <div class="ecg-grid"></div>
+      <svg viewBox="0 0 800 64" preserveAspectRatio="none">
+        <path class="ecg-line" d="M0,32 L60,32 L75,32 L85,10 L95,54 L105,32 L120,32 L140,32 L150,20 L160,32 L400,32 L460,32 L475,32 L485,10 L495,54 L505,32 L520,32 L540,32 L550,20 L560,32 L800,32"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- HUB -->
+  <main id="hub">
+    <div class="hub-intro">
+      <h1>PICK A CHALLENGE</h1>
+      <p>Eight quick tests of timing, nerve, memory, and control. Each takes under a minute &mdash; see where you land. Just-for-fun arcade games, not medical tests.</p>
+    </div>
+    <div class="grid" id="hub-grid"></div>
+  </main>
+
+  <!-- GAME VIEW -->
+  <main id="game-view" hidden>
+    <div class="game-header">
+      <button class="back-btn" id="back-btn" aria-label="Back to hub">&#8592;</button>
+      <div>
+        <p class="game-title" id="game-title"></p>
+      </div>
+    </div>
+    <p class="game-sub" id="game-sub"></p>
+    <div class="stage" id="stage"></div>
+  </main>
+
+  <!-- SUPPORT / DONATE VIEW -->
+  <main id="support-view" hidden>
+    <div class="game-header">
+      <button class="back-btn" id="support-back-btn" aria-label="Back to hub">&#8592;</button>
+      <div>
+        <p class="game-title">Buy me a coffee</p>
+      </div>
+    </div>
+    <p class="game-sub">If you enjoyed the arcade, a tip keeps the lights on. Pick a method below.</p>
+    <div class="stage" id="support-stage" style="min-height:auto;padding:24px 16px;"></div>
+  </main>
+
+  <!-- SUGGEST / FEEDBACK VIEW -->
+  <main id="suggest-view" hidden>
+    <div class="game-header">
+      <button class="back-btn" id="suggest-back-btn" aria-label="Back to hub">&#8592;</button>
+      <div>
+        <p class="game-title">Suggest a game</p>
+      </div>
+    </div>
+    <p class="game-sub">Got an idea for a new mini-game, or feedback on this one? Send it over.</p>
+    <div class="stage" id="suggest-stage" style="min-height:auto;padding:24px 16px;"></div>
+  </main>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     DONATE CONFIG — edit these with your own details.
+     ============================================================ */
+  var DONATE = {
+    // Binance Pay "scan to pay" details.
+    // Your QR code is embedded below as image data, so no separate file
+    // upload is needed. To replace it later: open Binance app -> Wallet ->
+    // Pay -> Receive, save the new QR image, base64-encode it, and swap
+    // the qrImage value for a new 'data:image/png;base64,...' string.
+    binance: {
+      qrImage: 'data:image/png;base64,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',
+      binancePayId: 'Blockchain enthusiastic'
+    }
+  };
+
+  var hubGrid = document.getElementById('hub-grid');
+  var hub = document.getElementById('hub');
+  var gameView = document.getElementById('game-view');
+  var supportView = document.getElementById('support-view');
+  var supportStage = document.getElementById('support-stage');
+  var stage = document.getElementById('stage');
+  var gameTitleEl = document.getElementById('game-title');
+  var gameSubEl = document.getElementById('game-sub');
+  var backBtn = document.getElementById('back-btn');
+  var supportBtn = document.getElementById('support-btn');
+  var supportBackBtn = document.getElementById('support-back-btn');
+  var suggestView = document.getElementById('suggest-view');
+  var suggestStage = document.getElementById('suggest-stage');
+  var suggestBtn = document.getElementById('suggest-btn');
+  var suggestBackBtn = document.getElementById('suggest-back-btn');
+
+  var activeGame = null;
+  var rafHandles = [];
+
+  function raf(fn){ var id = requestAnimationFrame(fn); rafHandles.push(id); return id; }
+  function clearRafs(){ rafHandles.forEach(cancelAnimationFrame); rafHandles = []; }
+
+  // simple beep via WebAudio, created lazily on first user gesture
+  var audioCtx = null;
+  function beep(freq, dur, vol){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      o.frequency.value = freq || 880;
+      o.type = 'sine';
+      g.gain.value = vol || 0.05;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur||0.08));
+      o.stop(audioCtx.currentTime + (dur||0.08) + 0.02);
+    }catch(e){ /* audio not available, ignore */ }
+  }
+
+  /* ============================================================
+     FEEDBACK CONFIG — edit these with your own details.
+     ============================================================ */
+  var FEEDBACK = {
+    // Optional: a Formspree endpoint (formspree.io/f/xxxxxxx) or similar
+    // form-backend URL that accepts a JSON POST. Leave blank to fall back
+    // to opening the visitor's email client instead.
+    endpoint: '',
+    // Fallback email address used when no endpoint is set above.
+    email: 'you@example.com'
+  };
+
+  /* ============================================================
+     TIPS — short, non-medical suggestions shown after each result.
+     Keyed by game id, then by tier name.
+     ============================================================ */
+  var TIPS = {
+    default: 'Nice run. Try another game to see how you do.',
+    hold: {
+      NOVICE: 'Short holds are common when you\u2019re tense. A slow four-count breath before you start can help.',
+      CONTENDER: 'Solid. Relaxing your shoulders before you hold tends to buy a few extra seconds.',
+      ATHLETE: 'Strong hold. The Breathing Pacer is a good way to cool down after this one.',
+      FREEDIVER: 'Excellent control. See if that steadiness carries over to the Balance Test.'
+    },
+    reflex: {
+      LIGHTNING: 'Fast. Reaction time is naturally quicker earlier in the day \u2014 try again later and compare.',
+      QUICK: 'Above average. Fatigue and distraction are the biggest things that slow this down.',
+      AVERAGE: 'Right in the typical range. A short break and another attempt often shaves off time.',
+      SLUGGISH: 'Reaction time dips with tiredness or a busy mind \u2014 worth another go when you\u2019re fresh.'
+    },
+    pulse: {
+      METRONOME: 'Excellent internal timing. Musicians and athletes both lean on this skill.',
+      'IN THE POCKET': 'Good rhythm sense. A few practice rounds usually tightens this further.',
+      'OFF-BEAT': 'Timing wandered a bit \u2014 try focusing on the sound of the beat rather than watching the circle.',
+      ARRHYTHMIC: 'Rhythm takes practice. Try counting "1-2-3-4" quietly along with the pulse next time.'
+    },
+    steady: {
+      BULLSEYE: 'Dead on. Your timing and read on speed are both sharp.',
+      SHARP: 'Close call. Watching the zone rather than the ball itself can help you anticipate.',
+      SHAKY: 'A bit early or late \u2014 try tracking the rhythm of the motion instead of reacting.',
+      MISS: 'Timing games take a few tries to click \u2014 give it another shot.'
+    },
+    balance: {
+      'ROCK STEADY': 'Very still hands. That kind of control helps with anything fine-motor, from drawing to surgery jokes aside.',
+      STEADY: 'Good control. Resting your elbow or arm can steady things even more.',
+      SHAKY: 'A little wobble is normal \u2014 caffeine, cold, and fatigue all add tremor.',
+      JITTERY: 'Hands are naturally less steady when tired or wired \u2014 try again after a short rest.'
+    },
+    tapspeed: {
+      BLUR: 'Very fast tapping \u2014 your finger speed is well above average.',
+      RAPID: 'Quick hands. Consistent tapping speed tends to beat all-out bursts.',
+      QUICK: 'Solid pace. Relaxing your wrist rather than tensing it usually speeds this up.',
+      CASUAL: 'Steady and unhurried. Try tapping with a lighter touch for more speed.'
+    },
+    memory: {
+      SAVANT: 'Outstanding recall \u2014 that\u2019s a long sequence to hold in short-term memory.',
+      'STEEL TRAP': 'Strong working memory. Grouping the pattern into chunks tends to help push it further.',
+      SHARP: 'Solid recall. Saying the sequence out loud in your head as it plays can extend this.',
+      NOVICE: 'Short-term memory for sequences varies a lot day to day \u2014 try again when you\u2019re less distracted.'
+    },
+    breathing: {
+      DONE: 'Nice reset. A minute of paced breathing can take the edge off a stressful moment.'
+    }
+  };
+
+  function pickNextGame(gameId){
+    var idx = GAMES.findIndex(function(g){ return g.id === gameId; });
+    if(idx === -1) return null;
+    return GAMES[(idx+1) % GAMES.length];
+  }
+
+  function tierBlock(gameId, tierName, metricLabel, metricValue){
+    var tip = (TIPS[gameId] && TIPS[gameId][tierName]) || TIPS.default;
+    var next = pickNextGame(gameId);
+    var wrap = document.createElement('div');
+    wrap.className = 'result-wrap';
+    wrap.innerHTML =
+      '<div class="status-pill">RESULT</div>' +
+      '<div class="result-tier">' + tierName + '</div>' +
+      '<div class="result-metric">' + metricLabel + ' <b>' + metricValue + '</b></div>' +
+      '<p class="hint">' + tip + '</p>' +
+      '<div class="btn-row">' +
+        '<button class="action-btn small" id="play-again">Play again</button>' +
+        (next ? '<button class="action-btn small alt" id="try-next">Try ' + next.title + '</button>' : '') +
+      '</div>' +
+      '<button class="ghost-btn" id="to-hub" style="margin-top:2px;">All games</button>';
+    return wrap;
+  }
+
+  function wireResultButtons(container, restartFn, gameId){
+    container.querySelector('#play-again').addEventListener('click', restartFn);
+    container.querySelector('#to-hub').addEventListener('click', showHub);
+    var nextBtn = container.querySelector('#try-next');
+    if(nextBtn){
+      nextBtn.addEventListener('click', function(){
+        var next = pickNextGame(gameId);
+        if(next) openGame(next);
+      });
+    }
+  }
+
+  /* ============================================================
+     GAME 1: HOLD STEADY  (breath-hold style press & hold)
+  ============================================================ */
+  var HoldSteady = {
+    id: 'hold',
+    title: 'Hold Steady',
+    tagline: 'Press and hold as long as you can. Release when you\u2019re done.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-track"></div><div class="mp-marker" style="bottom:8px;top:auto;"></div>';
+      var marker = el.querySelector('.mp-marker');
+      var t = 0;
+      return function(){
+        t += 0.02;
+        var y = (Math.sin(t)*0.5+0.5) * 34;
+        marker.style.bottom = y + 'px';
+      };
+    },
+    zones: [
+      {max:10, name:'NOVICE'},
+      {max:25, name:'CONTENDER'},
+      {max:45, name:'ATHLETE'},
+      {max:Infinity, name:'FREEDIVER'}
+    ],
+    maxScaleSeconds: 50,
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      stage.innerHTML =
+        '<div class="status-pill" id="hs-status">READY</div>' +
+        '<div class="hold-track-wrap">' +
+          '<div class="hold-track" id="hs-track">' +
+            '<div class="hold-fill" id="hs-fill"></div>' +
+            '<div class="hold-marker" id="hs-marker"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="big-readout mono" id="hs-time">0.0s</div>' +
+        '<button class="action-btn" id="hs-btn">HOLD</button>' +
+        '<p class="hint">Press and don\u2019t let go. The longer you hold, the further the marker climbs.</p>';
+
+      var btn = stage.querySelector('#hs-btn');
+      var fill = stage.querySelector('#hs-fill');
+      var marker = stage.querySelector('#hs-marker');
+      var timeEl = stage.querySelector('#hs-time');
+      var statusEl = stage.querySelector('#hs-status');
+      var holding = false, startT = 0;
+
+      function tick(){
+        if(!holding) return;
+        var elapsed = (performance.now() - startT)/1000;
+        var pct = Math.min(elapsed / self.maxScaleSeconds, 1) * 100;
+        fill.style.height = pct + '%';
+        marker.style.bottom = pct + '%';
+        timeEl.textContent = elapsed.toFixed(1) + 's';
+        raf(tick);
+      }
+
+      function start(e){
+        e.preventDefault();
+        if(holding) return;
+        holding = true;
+        startT = performance.now();
+        statusEl.textContent = 'HOLDING';
+        statusEl.className = 'status-pill live';
+        btn.textContent = 'RELEASE';
+        raf(tick);
+      }
+      function release(){
+        if(!holding) return;
+        holding = false;
+        var elapsed = (performance.now() - startT)/1000;
+        clearRafs();
+        finish(elapsed);
+      }
+
+      btn.addEventListener('pointerdown', start);
+      window.addEventListener('pointerup', release);
+      btn.addEventListener('pointerleave', function(e){ /* keep holding even if pointer drifts off button */ });
+
+      function finish(elapsed){
+        var tier = self.zones.find(function(z){ return elapsed <= z.max; });
+        var block = tierBlock(self.id, tier.name, 'Held for', elapsed.toFixed(1) + 's');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+
+      this._cleanup = function(){
+        window.removeEventListener('pointerup', release);
+      };
+    },
+    cleanup: function(){ if(this._cleanup) this._cleanup(); clearRafs(); }
+  };
+
+  /* ============================================================
+     GAME 2: REFLEX TEST
+  ============================================================ */
+  var ReflexTest = {
+    id: 'reflex',
+    title: 'Reflex Test',
+    tagline: 'Wait for the panel to turn green, then tap it as fast as you can.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-flash" style="background:var(--bg-deep);"></div>';
+      var flash = el.querySelector('.mp-flash');
+      var t = 0;
+      return function(){
+        t += 0.02;
+        var on = Math.sin(t*0.7) > 0.85;
+        flash.style.background = on ? 'var(--trace)' : 'var(--bg-deep)';
+      };
+    },
+    tiers: [
+      {max:180, name:'LIGHTNING'},
+      {max:280, name:'QUICK'},
+      {max:400, name:'AVERAGE'},
+      {max:Infinity, name:'SLUGGISH'}
+    ],
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      stage.innerHTML =
+        '<div class="status-pill" id="rf-status">GET READY</div>' +
+        '<div class="reflex-zone reflex-wait" id="rf-zone" tabindex="0" role="button">Tap anywhere<br>when it turns green</div>' +
+        '<p class="hint">Tapping early restarts the round.</p>';
+
+      var zone = stage.querySelector('#rf-zone');
+      var statusEl = stage.querySelector('#rf-status');
+      var state = 'waiting'; // waiting -> armed -> go
+      var timeoutId, goTime;
+
+      function schedule(){
+        state = 'armed';
+        zone.className = 'reflex-zone reflex-wait';
+        zone.innerHTML = 'Wait for green\u2026';
+        statusEl.textContent = 'WAITING';
+        statusEl.className = 'status-pill';
+        var delay = 1200 + Math.random()*2600;
+        timeoutId = setTimeout(function(){
+          state = 'go';
+          goTime = performance.now();
+          zone.className = 'reflex-zone reflex-go';
+          zone.innerHTML = 'TAP NOW';
+          statusEl.textContent = 'GO';
+          statusEl.className = 'status-pill go';
+          beep(920, 0.06, 0.04);
+        }, delay);
+      }
+
+      function onTap(){
+        if(state === 'armed'){
+          clearTimeout(timeoutId);
+          zone.className = 'reflex-zone reflex-early';
+          zone.innerHTML = 'Too soon!<br><span style="font-size:12px;font-weight:400;">Resetting\u2026</span>';
+          statusEl.textContent = 'JUMPED THE GUN';
+          setTimeout(schedule, 1000);
+          return;
+        }
+        if(state === 'go'){
+          var rt = performance.now() - goTime;
+          finish(rt);
+        }
+      }
+
+      zone.addEventListener('pointerdown', onTap);
+      schedule();
+
+      function finish(rt){
+        var tier = self.tiers.find(function(t){ return rt <= t.max; });
+        var block = tierBlock(self.id, tier.name, 'Reaction time', Math.round(rt) + 'ms');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+
+      this._cleanup = function(){ clearTimeout(timeoutId); };
+    },
+    cleanup: function(){ if(this._cleanup) this._cleanup(); }
+  };
+
+  /* ============================================================
+     GAME 3: PULSE TAP  (rhythm accuracy)
+  ============================================================ */
+  var PulseTap = {
+    id: 'pulse',
+    title: 'Pulse Tap',
+    tagline: 'Tap in time with the beat. You need 8 taps.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-pulse"></div>';
+      var p = el.querySelector('.mp-pulse');
+      var t = 0;
+      return function(){
+        t += 0.06;
+        var s = 0.7 + Math.max(0, Math.sin(t*3)) * 0.6;
+        p.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+      };
+    },
+    bpm: 92,
+    totalBeats: 8,
+    tiers: [
+      {max:60, name:'METRONOME'},
+      {max:140, name:'IN THE POCKET'},
+      {max:260, name:'OFF-BEAT'},
+      {max:Infinity, name:'ARRHYTHMIC'}
+    ],
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      var interval = 60000 / this.bpm;
+      stage.innerHTML =
+        '<div class="status-pill" id="pt-status">TAP TO START</div>' +
+        '<div class="pulse-circle" id="pt-circle"></div>' +
+        '<div class="pulse-taplog" id="pt-log"></div>' +
+        '<button class="action-btn alt" id="pt-btn">TAP</button>' +
+        '<p class="hint">First tap starts the beat. Then tap along with the pulse.</p>';
+
+      var circle = stage.querySelector('#pt-circle');
+      var log = stage.querySelector('#pt-log');
+      var btn = stage.querySelector('#pt-btn');
+      var statusEl = stage.querySelector('#pt-status');
+
+      var started = false;
+      var beatIndex = 0;
+      var startTime = 0;
+      var deviations = [];
+      var pulseRafId;
+
+      function pulseAnim(){
+        if(!started) return;
+        var elapsed = performance.now() - startTime;
+        var phase = (elapsed % interval) / interval; // 0..1
+        var s = 1 + Math.max(0, Math.sin(phase * Math.PI)) * 0.18;
+        circle.style.transform = 'scale(' + s + ')';
+        // trigger beep + light on each beat crossing
+        var currentBeat = Math.floor(elapsed / interval);
+        if(currentBeat > beatIndex && currentBeat <= self.totalBeats){
+          beatIndex = currentBeat;
+          beep(700, 0.05, 0.035);
+        }
+        pulseRafId = raf(pulseAnim);
+      }
+
+      function addChip(devMs){
+        var chip = document.createElement('div');
+        var good = Math.abs(devMs) <= 140;
+        chip.className = 'taplog-chip ' + (good ? 'good' : 'bad');
+        chip.textContent = (devMs>=0?'+':'') + Math.round(devMs) + 'ms';
+        log.appendChild(chip);
+      }
+
+      function onTap(){
+        if(!started){
+          started = true;
+          statusEl.textContent = 'KEEP THE BEAT';
+          statusEl.className = 'status-pill live';
+          startTime = performance.now();
+          beatIndex = 0;
+          beep(700, 0.05, 0.035);
+          raf(pulseAnim);
+          return;
+        }
+        var elapsed = performance.now() - startTime;
+        var nearestBeat = Math.round(elapsed / interval);
+        if(nearestBeat === 0) nearestBeat = 1;
+        var expected = nearestBeat * interval;
+        var dev = elapsed - expected;
+        deviations.push(dev);
+        addChip(dev);
+        if(deviations.length >= self.totalBeats){
+          finish();
+        }
+      }
+
+      btn.addEventListener('pointerdown', function(e){ e.preventDefault(); onTap(); });
+
+      function finish(){
+        cancelAnimationFrame(pulseRafId);
+        var avgAbs = deviations.reduce(function(a,b){ return a + Math.abs(b); }, 0) / deviations.length;
+        var tier = self.tiers.find(function(t){ return avgAbs <= t.max; });
+        var block = tierBlock(self.id, tier.name, 'Avg. timing error', Math.round(avgAbs) + 'ms');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+
+      this._cleanup = function(){ if(pulseRafId) cancelAnimationFrame(pulseRafId); };
+    },
+    cleanup: function(){ if(this._cleanup) this._cleanup(); }
+  };
+
+  /* ============================================================
+     GAME 4: STEADY HAND  (stop the moving marker in the zone)
+  ============================================================ */
+  var SteadyHand = {
+    id: 'steady',
+    title: 'Steady Hand',
+    tagline: 'The ball slides back and forth. Tap to freeze it inside the zone.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-bar"></div><div class="mp-zone"></div><div class="mp-ball"></div>';
+      var ball = el.querySelector('.mp-ball');
+      var t = 0;
+      return function(){
+        t += 0.045;
+        var pct = (Math.sin(t)*0.5+0.5) * 100;
+        ball.style.left = pct + '%';
+      };
+    },
+    zoneWidthPct: 16,
+    speed: 0.045, // radians per frame-ish
+    tiers: [
+      {max:4, name:'BULLSEYE'},
+      {max:12, name:'SHARP'},
+      {max:28, name:'SHAKY'},
+      {max:Infinity, name:'MISS'}
+    ],
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      var zoneCenter = 25 + Math.random()*50; // pct, keep inside margins
+      var zoneStart = zoneCenter - this.zoneWidthPct/2;
+
+      stage.innerHTML =
+        '<div class="status-pill live">MOVING</div>' +
+        '<div class="sh-bar-wrap">' +
+          '<div class="sh-bar" id="sh-bar">' +
+            '<div class="sh-zone" id="sh-zone"></div>' +
+            '<div class="sh-ball" id="sh-ball"></div>' +
+          '</div>' +
+        '</div>' +
+        '<button class="action-btn danger" id="sh-btn">STOP</button>' +
+        '<p class="hint">Tap STOP when the ball is centered in the highlighted zone.</p>';
+
+      var zoneEl = stage.querySelector('#sh-zone');
+      zoneEl.style.left = zoneStart + '%';
+      zoneEl.style.width = this.zoneWidthPct + '%';
+
+      var ball = stage.querySelector('#sh-ball');
+      var btn = stage.querySelector('#sh-btn');
+      var t = Math.random()*Math.PI*2;
+      var running = true;
+      var currentPct = 50;
+
+      function tick(){
+        if(!running) return;
+        t += self.speed;
+        currentPct = (Math.sin(t)*0.5+0.5) * 100;
+        ball.style.left = currentPct + '%';
+        raf(tick);
+      }
+      raf(tick);
+
+      btn.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        if(!running) return;
+        running = false;
+        clearRafs();
+        var dist = Math.abs(currentPct - zoneCenter);
+        finish(dist);
+      });
+
+      function finish(dist){
+        var tier = self.tiers.find(function(t){ return dist <= t.max; });
+        var block = tierBlock(self.id, tier.name, 'Distance from center', dist.toFixed(1) + '%');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+    },
+    cleanup: function(){ clearRafs(); }
+  };
+
+  /* ============================================================
+     GAME 5: BALANCE TEST  (hold pointer still inside a zone)
+  ============================================================ */
+  var BalanceTest = {
+    id: 'balance',
+    title: 'Balance Test',
+    tagline: 'Keep your finger still inside the circle for 5 seconds.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-dot"></div>';
+      var dot = el.querySelector('.mp-dot');
+      var t = 0;
+      return function(){
+        t += 0.09;
+        dot.style.transform = 'translate(calc(-50% + ' + (Math.sin(t)*5) + 'px), calc(-50% + ' + (Math.cos(t*1.3)*4) + 'px))';
+      };
+    },
+    durationMs: 5000,
+    tiers: [
+      {max:250, name:'ROCK STEADY'},
+      {max:700, name:'STEADY'},
+      {max:1600, name:'SHAKY'},
+      {max:Infinity, name:'JITTERY'}
+    ],
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      stage.innerHTML =
+        '<div class="status-pill" id="bal-status">PRESS & HOLD</div>' +
+        '<div class="bal-zone" id="bal-zone"><div class="bal-ring" id="bal-ring"></div><div class="bal-dot"></div></div>' +
+        '<div class="big-readout mono" id="bal-time">5.0s</div>' +
+        '<p class="hint">Press inside the circle and try not to move at all.</p>';
+
+      var zone = stage.querySelector('#bal-zone');
+      var ring = stage.querySelector('#bal-ring');
+      var timeEl = stage.querySelector('#bal-time');
+      var statusEl = stage.querySelector('#bal-status');
+      var holding = false, startT = 0, lastX = 0, lastY = 0, jitter = 0;
+
+      function tick(){
+        if(!holding) return;
+        var elapsed = performance.now() - startT;
+        var remain = Math.max(0, self.durationMs - elapsed);
+        timeEl.textContent = (remain/1000).toFixed(1) + 's';
+        ring.style.setProperty('--p', Math.min(100, (elapsed/self.durationMs)*100));
+        if(elapsed >= self.durationMs){
+          holding = false;
+          clearRafs();
+          finish(jitter);
+          return;
+        }
+        raf(tick);
+      }
+
+      function start(e){
+        e.preventDefault();
+        holding = true;
+        startT = performance.now();
+        jitter = 0;
+        var pt = (e.touches && e.touches[0]) || e;
+        lastX = pt.clientX; lastY = pt.clientY;
+        statusEl.textContent = 'HOLDING';
+        statusEl.className = 'status-pill live';
+        zone.className = 'bal-zone active';
+        raf(tick);
+      }
+      function move(e){
+        if(!holding) return;
+        var pt = (e.touches && e.touches[0]) || e;
+        var dx = pt.clientX - lastX, dy = pt.clientY - lastY;
+        jitter += Math.sqrt(dx*dx + dy*dy);
+        lastX = pt.clientX; lastY = pt.clientY;
+      }
+      function cancel(){
+        if(!holding) return;
+        holding = false;
+        clearRafs();
+        zone.className = 'bal-zone';
+        statusEl.textContent = 'LET GO EARLY';
+        var block = document.createElement('div');
+        block.className = 'result-wrap';
+        block.innerHTML =
+          '<div class="status-pill">INCOMPLETE</div>' +
+          '<div class="result-tier">RESTLESS</div>' +
+          '<p class="hint">Let go too soon \u2014 try to make it the full 5 seconds.</p>' +
+          '<div class="btn-row"><button class="action-btn small" id="play-again">Try again</button>' +
+          '<button class="ghost-btn" id="to-hub">All games</button></div>';
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+
+      zone.addEventListener('pointerdown', start);
+      zone.addEventListener('pointermove', move);
+      zone.addEventListener('pointerup', cancel);
+      zone.addEventListener('pointerleave', function(){ if(holding) cancel(); });
+
+      function finish(jitterPx){
+        var tier = self.tiers.find(function(t){ return jitterPx <= t.max; });
+        var block = tierBlock(self.id, tier.name, 'Wobble', Math.round(jitterPx) + 'px');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+    },
+    cleanup: function(){ clearRafs(); }
+  };
+
+  /* ============================================================
+     GAME 6: TAP SPEED  (taps in 5 seconds)
+  ============================================================ */
+  var TapSpeed = {
+    id: 'tapspeed',
+    title: 'Tap Speed',
+    tagline: 'Tap the button as many times as you can in 5 seconds.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-dot"></div>';
+      var dot = el.querySelector('.mp-dot');
+      var t = 0;
+      return function(){
+        t += 0.25;
+        var s = 0.7 + Math.abs(Math.sin(t))*0.5;
+        dot.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+      };
+    },
+    durationMs: 5000,
+    tiers: [
+      {max:2.5, name:'CASUAL'},
+      {max:5, name:'QUICK'},
+      {max:8, name:'RAPID'},
+      {max:Infinity, name:'BLUR'}
+    ],
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      stage.innerHTML =
+        '<div class="status-pill" id="ts-status">TAP TO START</div>' +
+        '<div class="tap-count mono" id="ts-count">0</div>' +
+        '<div class="tap-target" id="ts-target">TAP</div>' +
+        '<p class="hint">First tap starts the 5-second timer.</p>';
+
+      var target = stage.querySelector('#ts-target');
+      var countEl = stage.querySelector('#ts-count');
+      var statusEl = stage.querySelector('#ts-status');
+      var started = false, count = 0, startT = 0, timeoutId;
+
+      function onTap(e){
+        e.preventDefault();
+        if(!started){
+          started = true;
+          startT = performance.now();
+          statusEl.textContent = 'GO';
+          statusEl.className = 'status-pill live';
+          timeoutId = setTimeout(function(){ finish(); }, self.durationMs);
+        }
+        count++;
+        countEl.textContent = count;
+      }
+
+      target.addEventListener('pointerdown', onTap);
+
+      function finish(){
+        target.removeEventListener('pointerdown', onTap);
+        var cps = count / (self.durationMs/1000);
+        var tier = self.tiers.find(function(t){ return cps <= t.max; });
+        var block = tierBlock(self.id, tier.name, 'Taps in 5s', count + ' (' + cps.toFixed(1) + '/s)');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+
+      this._cleanup = function(){ clearTimeout(timeoutId); };
+    },
+    cleanup: function(){ if(this._cleanup) this._cleanup(); }
+  };
+
+  /* ============================================================
+     GAME 7: MEMORY MATCH  (Simon-style growing sequence)
+  ============================================================ */
+  var MemoryMatch = {
+    id: 'memory',
+    title: 'Memory Match',
+    tagline: 'Watch the pattern, then repeat it back. It grows each round.',
+    previewInit: function(el){
+      el.innerHTML =
+        '<div style="position:absolute;inset:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;">' +
+        '<div class="mem-tile t0" id="mp0"></div><div class="mem-tile t1" id="mp1"></div>' +
+        '<div class="mem-tile t2" id="mp2"></div><div class="mem-tile t3" id="mp3"></div></div>';
+      var tiles = [el.querySelector('#mp0'), el.querySelector('#mp1'), el.querySelector('#mp2'), el.querySelector('#mp3')];
+      var t = 0, litIdx = -1;
+      return function(){
+        t += 0.03;
+        var idx = Math.floor(t) % 4;
+        if(idx !== litIdx){
+          tiles.forEach(function(el2, i){ el2.classList.toggle('lit', i===idx); });
+          litIdx = idx;
+        }
+      };
+    },
+    freqs: [392, 523, 659, 784],
+    tiers: [
+      {max:3, name:'NOVICE'},
+      {max:6, name:'SHARP'},
+      {max:9, name:'STEEL TRAP'},
+      {max:Infinity, name:'SAVANT'}
+    ],
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      stage.innerHTML =
+        '<div class="status-pill" id="mm-status">WATCH</div>' +
+        '<div class="mem-level mono" id="mm-level">Round 1</div>' +
+        '<div class="mem-grid" id="mm-grid">' +
+          '<div class="mem-tile t0" data-i="0"></div><div class="mem-tile t1" data-i="1"></div>' +
+          '<div class="mem-tile t2" data-i="2"></div><div class="mem-tile t3" data-i="3"></div>' +
+        '</div>' +
+        '<p class="hint">Tap the tiles back in the same order you saw them light up.</p>';
+
+      var grid = stage.querySelector('#mm-grid');
+      var tiles = Array.prototype.slice.call(grid.querySelectorAll('.mem-tile'));
+      var statusEl = stage.querySelector('#mm-status');
+      var levelEl = stage.querySelector('#mm-level');
+      var sequence = [];
+      var playerIdx = 0;
+      var accepting = false;
+      var timeouts = [];
+
+      function lightTile(i, dur){
+        tiles[i].classList.add('lit');
+        beep(self.freqs[i], (dur/1000)*0.8, 0.04);
+        timeouts.push(setTimeout(function(){ tiles[i].classList.remove('lit'); }, dur));
+      }
+
+      function playSequence(){
+        accepting = false;
+        statusEl.textContent = 'WATCH';
+        statusEl.className = 'status-pill';
+        playerIdx = 0;
+        var delay = 200;
+        sequence.forEach(function(i, idx){
+          timeouts.push(setTimeout(function(){ lightTile(i, 450); }, delay));
+          delay += 650;
+        });
+        timeouts.push(setTimeout(function(){
+          accepting = true;
+          statusEl.textContent = 'YOUR TURN';
+          statusEl.className = 'status-pill go';
+        }, delay));
+      }
+
+      function nextRound(){
+        sequence.push(Math.floor(Math.random()*4));
+        levelEl.textContent = 'Round ' + sequence.length;
+        playSequence();
+      }
+
+      function onTileTap(i){
+        if(!accepting) return;
+        lightTile(i, 250);
+        if(i === sequence[playerIdx]){
+          playerIdx++;
+          if(playerIdx === sequence.length){
+            accepting = false;
+            timeouts.push(setTimeout(nextRound, 500));
+          }
+        } else {
+          accepting = false;
+          finish(sequence.length - 1);
+        }
+      }
+
+      tiles.forEach(function(t, i){
+        t.addEventListener('pointerdown', function(){ onTileTap(i); });
+      });
+
+      timeouts.push(setTimeout(nextRound, 600));
+
+      function finish(longestCleared){
+        var tier = self.tiers.find(function(t){ return longestCleared <= t.max; });
+        var block = tierBlock(self.id, tier.name, 'Longest sequence', longestCleared + ' tiles');
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+      }
+
+      this._cleanup = function(){ timeouts.forEach(clearTimeout); };
+    },
+    cleanup: function(){ if(this._cleanup) this._cleanup(); }
+  };
+
+  /* ============================================================
+     GAME 8: BREATHING PACER  (guided, non-competitive)
+  ============================================================ */
+  var BreathingPacer = {
+    id: 'breathing',
+    title: 'Breathing Pacer',
+    tagline: 'Follow the circle: in for 4, hold for 4, out for 4, hold for 4.',
+    previewInit: function(el){
+      el.innerHTML = '<div class="mp-pulse" style="background:var(--trace);"></div>';
+      var p = el.querySelector('.mp-pulse');
+      var t = 0;
+      return function(){
+        t += 0.02;
+        var s = 0.6 + (Math.sin(t)*0.5+0.5)*0.7;
+        p.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+      };
+    },
+    phaseMs: 4000,
+    totalCycles: 4,
+    render: function(){
+      gameTitleEl.textContent = this.title;
+      gameSubEl.textContent = this.tagline;
+      var self = this;
+      stage.innerHTML =
+        '<div class="status-pill" id="br-status">READY WHEN YOU ARE</div>' +
+        '<div class="breathe-circle" id="br-circle"></div>' +
+        '<div class="breathe-label" id="br-label">BREATHE</div>' +
+        '<div class="breathe-cycles" id="br-cycles">0 of ' + self.totalCycles + ' cycles</div>' +
+        '<button class="action-btn" id="br-btn">START</button>' +
+        '<p class="hint">Sit back and follow the circle for about a minute.</p>';
+
+      var circle = stage.querySelector('#br-circle');
+      var label = stage.querySelector('#br-label');
+      var cyclesEl = stage.querySelector('#br-cycles');
+      var statusEl = stage.querySelector('#br-status');
+      var btn = stage.querySelector('#br-btn');
+      var timeouts = [];
+      var phases = [
+        {name:'BREATHE IN', scale:1.35},
+        {name:'HOLD', scale:1.35},
+        {name:'BREATHE OUT', scale:0.7},
+        {name:'HOLD', scale:0.7}
+      ];
+
+      function runPhase(cycle, phaseIdx){
+        if(cycle >= self.totalCycles){ finish(); return; }
+        var phase = phases[phaseIdx];
+        label.textContent = phase.name;
+        circle.style.transform = 'scale(' + phase.scale + ')';
+        cyclesEl.textContent = cycle + ' of ' + self.totalCycles + ' cycles';
+        timeouts.push(setTimeout(function(){
+          var nextPhase = phaseIdx + 1;
+          var nextCycle = cycle;
+          if(nextPhase >= phases.length){ nextPhase = 0; nextCycle = cycle + 1; }
+          runPhase(nextCycle, nextPhase);
+        }, self.phaseMs));
+      }
+
+      btn.addEventListener('click', function(){
+        btn.remove();
+        statusEl.textContent = 'FOLLOW THE CIRCLE';
+        statusEl.className = 'status-pill live';
+        circle.style.transition = 'transform ' + (self.phaseMs/1000) + 's ease-in-out';
+        runPhase(0, 0);
+      });
+
+      function finish(){
+        statusEl.textContent = 'DONE';
+        var block = document.createElement('div');
+        block.className = 'result-wrap';
+        block.innerHTML =
+          '<div class="status-pill">SESSION COMPLETE</div>' +
+          '<div class="result-tier">NICE RESET</div>' +
+          '<p class="hint">' + TIPS.breathing.DONE + '</p>' +
+          '<div class="mood-row" id="br-mood">' +
+            '<button class="mood-btn" data-m="calmer">Calmer</button>' +
+            '<button class="mood-btn" data-m="same">About the same</button>' +
+            '<button class="mood-btn" data-m="tense">Still tense</button>' +
+          '</div>' +
+          '<div class="btn-row"><button class="action-btn small" id="play-again">Do it again</button>' +
+          '<button class="ghost-btn" id="to-hub">All games</button></div>';
+        stage.innerHTML = '';
+        stage.appendChild(block);
+        wireResultButtons(block, function(){ self.render(); }, self.id);
+        block.querySelectorAll('.mood-btn').forEach(function(mb){
+          mb.addEventListener('click', function(){
+            block.querySelectorAll('.mood-btn').forEach(function(x){ x.style.borderColor = 'var(--line)'; x.style.color = 'var(--text)'; });
+            mb.style.borderColor = 'var(--trace)';
+            mb.style.color = 'var(--trace)';
+          });
+        });
+      }
+
+      this._cleanup = function(){ timeouts.forEach(clearTimeout); };
+    },
+    cleanup: function(){ if(this._cleanup) this._cleanup(); }
+  };
+
+  var GAMES = [HoldSteady, ReflexTest, PulseTap, SteadyHand, BalanceTest, TapSpeed, MemoryMatch, BreathingPacer];
+
+  /* ---------- Hub rendering ---------- */
+  var previewTickers = [];
+  function buildHub(){
+    hubGrid.innerHTML = '';
+    previewTickers = [];
+    GAMES.forEach(function(game, i){
+      var card = document.createElement('button');
+      card.className = 'card';
+      card.setAttribute('aria-label', 'Play ' + game.title);
+      card.innerHTML =
+        '<div class="card-preview"><span class="card-num mono">0' + (i+1) + '</span></div>' +
+        '<h3>' + game.title + '</h3>' +
+        '<p>' + game.tagline + '</p>' +
+        '<div class="go">Play &rarr;</div>';
+      card.addEventListener('click', function(){ openGame(game); });
+      hubGrid.appendChild(card);
+      var previewEl = card.querySelector('.card-preview');
+      var tickFn = game.previewInit(previewEl);
+      previewTickers.push(tickFn);
+    });
+  }
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function previewLoop(){
+    if(!reduceMotion){
+      previewTickers.forEach(function(fn){ fn(); });
+    }
+    requestAnimationFrame(previewLoop);
+  }
+  requestAnimationFrame(previewLoop);
+
+  function openGame(game){
+    activeGame = game;
+    hub.hidden = true;
+    gameView.hidden = false;
+    supportView.hidden = true;
+    suggestView.hidden = true;
+    game.render();
+  }
+
+  function showHub(){
+    if(activeGame && activeGame.cleanup) activeGame.cleanup();
+    activeGame = null;
+    gameView.hidden = true;
+    supportView.hidden = true;
+    suggestView.hidden = true;
+    hub.hidden = false;
+  }
+
+  function showSupport(){
+    if(activeGame && activeGame.cleanup) activeGame.cleanup();
+    activeGame = null;
+    hub.hidden = true;
+    gameView.hidden = true;
+    suggestView.hidden = true;
+    supportView.hidden = false;
+    renderSupport('paystack');
+  }
+
+  function showSuggest(){
+    if(activeGame && activeGame.cleanup) activeGame.cleanup();
+    activeGame = null;
+    hub.hidden = true;
+    gameView.hidden = true;
+    supportView.hidden = true;
+    suggestView.hidden = false;
+    renderSuggest();
+  }
+
+  function renderSuggest(){
+    suggestStage.innerHTML =
+      '<form class="feedback-form" id="fb-form">' +
+        '<div>' +
+          '<label for="fb-name">Name (optional)</label>' +
+          '<input type="text" id="fb-name" autocomplete="name" placeholder="Your name">' +
+        '</div>' +
+        '<div>' +
+          '<label for="fb-msg">Your idea or feedback</label>' +
+          '<textarea id="fb-msg" placeholder="A new game idea, a bug, or anything else\u2026" required></textarea>' +
+        '</div>' +
+        '<button type="submit" class="action-btn small">Send</button>' +
+        '<div class="feedback-status" id="fb-status" aria-live="polite"></div>' +
+      '</form>';
+
+    var form = suggestStage.querySelector('#fb-form');
+    var statusEl = suggestStage.querySelector('#fb-status');
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var name = suggestStage.querySelector('#fb-name').value.trim();
+      var message = suggestStage.querySelector('#fb-msg').value.trim();
+      if(!message) return;
+
+      if(FEEDBACK.endpoint){
+        statusEl.textContent = 'Sending\u2026';
+        statusEl.className = 'feedback-status';
+        fetch(FEEDBACK.endpoint, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: JSON.stringify({ name: name || 'Anonymous', message: message })
+        }).then(function(res){
+          if(res.ok){
+            statusEl.textContent = 'Thanks \u2014 got it!';
+            form.reset();
+          } else {
+            throw new Error('bad response');
+          }
+        }).catch(function(){
+          statusEl.textContent = 'Couldn\u2019t send that \u2014 try the email link below instead.';
+          statusEl.className = 'feedback-status error';
+        });
+      } else {
+        var subject = encodeURIComponent('Vitals Arcade suggestion');
+        var body = encodeURIComponent((name ? 'From: ' + name + '\n\n' : '') + message);
+        window.location.href = 'mailto:' + FEEDBACK.email + '?subject=' + subject + '&body=' + body;
+        statusEl.textContent = 'Opening your email app\u2026';
+      }
+    });
+  }
+
+  function renderSupport(tab){
+    var tabs = [
+      {id:'paystack', label:'Paystack'},
+      {id:'crypto', label:'Binance Pay'}
+    ];
+    var html = '<div class="tab-row">' + tabs.map(function(t){
+      return '<button class="tab-btn' + (t.id===tab?' active':'') + '" data-tab="' + t.id + '">' + t.label + '</button>';
+    }).join('') + '</div><div class="support-panel" id="support-panel"></div>';
+    supportStage.innerHTML = html;
+
+    supportStage.querySelectorAll('.tab-btn').forEach(function(b){
+      b.addEventListener('click', function(){ renderSupport(b.getAttribute('data-tab')); });
+    });
+
+    var panel = supportStage.querySelector('#support-panel');
+
+    if(tab === 'paystack'){
+      panel.innerHTML =
+        '<a class="donate-link-btn paystack" href="' + DONATE.paystackLink + '" target="_blank" rel="noopener">Send a tip via Paystack</a>' +
+        '<p class="hint">Pay by card or bank transfer. Opens a secure Paystack checkout in a new tab.</p>';
+    } else if(tab === 'crypto'){
+      var b = DONATE.binance;
+      panel.innerHTML =
+        '<div class="wallet-card">' +
+          '<div class="wallet-label">Scan to pay &middot; Binance</div>' +
+          '<img class="wallet-qr" id="binance-qr-img" src="' + b.qrImage + '" alt="Binance Pay QR code" loading="lazy">' +
+          '<div class="wallet-addr-row">' +
+            '<div class="wallet-addr mono">' + b.binancePayId + '</div>' +
+            '<button class="copy-btn" data-addr="' + b.binancePayId + '">Copy</button>' +
+          '</div>' +
+        '</div>' +
+        '<p class="hint">Scan with the Binance app (Wallet &rarr; Pay &rarr; Scan), or send to the ID above.</p>';
+
+      var qrImg = panel.querySelector('#binance-qr-img');
+      qrImg.addEventListener('error', function(){
+        qrImg.outerHTML = '<div class="wallet-qr" style="display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;color:#334;padding:8px;line-height:1.4;">QR image not found &mdash; add "' + b.qrImage + '" next to index.html</div>';
+      });
+
+      panel.querySelector('.copy-btn').addEventListener('click', function(){
+        var btn = this;
+        navigator.clipboard.writeText(b.binancePayId).then(function(){
+          btn.textContent = 'Copied';
+          btn.classList.add('copied');
+          setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+        }).catch(function(){ /* clipboard unavailable, ignore */ });
+      });
+    }
+  }
+
+  backBtn.addEventListener('click', showHub);
+  supportBackBtn.addEventListener('click', showHub);
+  supportBtn.addEventListener('click', showSupport);
+  suggestBackBtn.addEventListener('click', showHub);
+  suggestBtn.addEventListener('click', showSuggest);
+
+  buildHub();
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#081620">
+  <meta name="description" content="Quick, just-for-fun arcade challenges for timing, reflex, memory and control.">
+  <meta property="og:title" content="Vitals Arcade">
+  <meta property="og:description" content="Quick arcade challenges you can play in under a minute.">
+  <meta property="og:image" content="https://vitals-arcade.vercel.app/splash.svg">
   <title>Vitals Arcade</title>
   <style>
     *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#081620;overflow:hidden}body{font-family:Inter,system-ui,sans-serif}.shell{width:100%;height:100%;display:flex;flex-direction:column;background:#081620}.bar{height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#081620;border-bottom:1px solid #24455c;color:#eaf2f2;z-index:2}.brand{font:700 13px/1 monospace;letter-spacing:.6px}.brand b{color:#8fe3c1}.actions{display:flex;gap:7px}.mini-btn{border:1px solid #24455c;background:#12293b;color:#8fe3c1;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:700}.mini-btn:active{transform:scale(.97)}iframe{border:0;width:100%;flex:1;min-height:0;background:#081620}
@@ -18,7 +22,7 @@
     <iframe title="Vitals Arcade games" src="/index.html"></iframe>
   </div>
   <script type="module">
-    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@0.1.7';
+    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
     const add = document.getElementById('add');
     const close = document.getElementById('close');
     try {
@@ -32,7 +36,6 @@
         try { await sdk.actions.close(); } catch (e) { history.back(); }
       };
     } catch (e) {
-      // Standalone browser fallback: keep the game fully usable.
       add.hidden = true;
       close.onclick = () => history.back();
     }

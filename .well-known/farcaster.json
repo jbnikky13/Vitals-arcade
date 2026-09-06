@@ -3,11 +3,11 @@
     "version": "1",
     "name": "Vitals Arcade",
     "subtitle": "Quick reflex & memory games",
-    "description": "Eight fast, just-for-fun arcade challenges for timing, reflex, memory, control and breathing. Not medical tests.",
+    "description": "Quick, just-for-fun arcade challenges for timing, reflex, memory, control and breathing. Not medical tests.",
     "iconUrl": "https://vitals-arcade.vercel.app/icon.svg",
     "homeUrl": "https://vitals-arcade.vercel.app/",
     "imageUrl": "https://vitals-arcade.vercel.app/splash.svg",
-    "splashImageUrl": "https://vitals-arcade.vercel.app/splash.svg",
+    "splashImageUrl": "https://vitals-arcade.vercel.app/icon.svg",
     "splashBackgroundColor": "#081620",
     "heroImageUrl": "https://vitals-arcade.vercel.app/splash.svg",
     "buttonTitle": "PLAY NOW",
@@ -15,7 +15,7 @@
     "tags": ["games", "arcade", "reflex", "memory", "fitness"],
     "tagline": "Test your timing. Beat your score.",
     "ogTitle": "Vitals Arcade",
-    "ogDescription": "Eight quick arcade challenges. Play in under a minute.",
+    "ogDescription": "Quick arcade challenges you can play in under a minute.",
     "ogImageUrl": "https://vitals-arcade.vercel.app/splash.svg",
     "requiredChains": ["eip155:8453"]
   }

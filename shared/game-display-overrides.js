@@ -1,0 +1,14 @@
+/* Visual previews for Vitals Arcade game cards. Loaded after the existing hub code. */
+(function(){
+ const previews={
+  'Neon Pong': '<div class="gd gd-pong"><i></i><b></b><em></em></div>',
+  'Solve in Seconds': '<div class="gd gd-solve"><strong>7 × 8 = ?</strong><small>10s</small></div>',
+  'Word Rush': '<div class="gd gd-word"><span>W</span><span>O</span><span>R</span><span>D</span><small>RUSH</small></div>',
+  'Pattern Breaker': '<div class="gd gd-pattern"><strong>2 · 4 · 8 · ?</strong><small>FIND THE MISSING</small></div>',
+  'Boss Quiz': '<div class="gd gd-boss"><strong>👑 BOSS</strong><div>♥ ♥ ♥</div><small>ANSWER TO ATTACK</small></div>',
+  'Number Merge': '<div class="gd gd-merge"><span>2</span><span>4</span><span>8</span><span>16</span><b>+</b></div>'
+ };
+ function css(){if(document.getElementById('game-display-css'))return;const s=document.createElement('style');s.id='game-display-css';s.textContent='.gd{height:92px;border-radius:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#0b1d2a;border:1px solid #24455c;color:#eaf2f2}.gd small{display:block;font-size:9px;letter-spacing:1.5px;color:#8aa1ad}.gd-pong i,.gd-pong em{position:absolute;width:6px;height:48px;border-radius:4px;background:#8fe3c1}.gd-pong i{left:22px}.gd-pong em{right:22px}.gd-pong b{width:10px;height:10px;border-radius:50%;background:#f2a93b}.gd-pong:after{content:"";position:absolute;top:0;bottom:0;border-left:1px dashed #315468}.gd-solve{flex-direction:column;gap:6px}.gd-solve strong{font-size:25px}.gd-word{gap:5px;flex-wrap:wrap;padding:14px}.gd-word span{width:25px;height:25px;border-radius:5px;background:#173b50;display:grid;place-items:center;font-weight:800}.gd-word small{position:absolute;bottom:7px}.gd-pattern{flex-direction:column;gap:8px}.gd-pattern strong{font-size:22px;letter-spacing:2px}.gd-boss{flex-direction:column;gap:7px}.gd-boss strong{font-size:20px}.gd-merge{gap:6px;flex-wrap:wrap;padding:12px}.gd-merge span{width:34px;height:34px;border-radius:6px;background:#24455c;display:grid;place-items:center;font-weight:800}.gd-merge b{font-size:22px}';document.head.appendChild(s)}
+ function mount(){css();const cards=[...document.querySelectorAll('a,button,article,div')];cards.forEach(card=>{const text=(card.innerText||'').trim();for(const name in previews){if(text.includes(name)&&!card.querySelector('.gd')){const target=card.querySelector('h2,h3,h4,.game-title,.title')||card.firstElementChild;if(target&&target.parentNode===card){target.insertAdjacentHTML('beforebegin',previews[name])}else card.insertAdjacentHTML('afterbegin',previews[name]);break}}})}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(mount,100));else setTimeout(mount,100);
+})();

@@ -1,0 +1,90 @@
+name: Replace Original Games
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  replace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Replace original game collection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          def remove_var(text,name):
+              marker=f'var {name} = {{'
+              start=text.index(marker)
+              brace=text.index('{',start)
+              depth=0; quote=None; esc=False
+              i=brace
+              while i<len(text):
+                  c=text[i]
+                  if quote:
+                      if esc: esc=False
+                      elif c=='\\': esc=True
+                      elif c==quote: quote=None
+                  else:
+                      if c in "\'\"`": quote=c
+                      elif c=='{': depth+=1
+                      elif c=='}':
+                          depth-=1
+                          if depth==0:
+                              j=i+1
+                              while j<len(text) and text[j].isspace(): j+=1
+                              if j<len(text) and text[j]==';': j+=1
+                              return text[:start]+text[j:]
+                  i+=1
+              raise RuntimeError(f'Could not find end of {name}')
+          for name in ('HoldSteady','BalanceTest','BreathingPacer'):
+              if f'var {name} = {{' in s:
+                  s=remove_var(s,name)
+          replacements="""  /* Replacement games */
+            var PatternBreaker = {
+              id:'pattern-breaker', title:'Pattern Breaker',
+              tagline:'Spot the missing number before the pattern gets harder.',
+              previewInit:function(el){el.innerHTML='<div style=\"display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);\">2 4 8 16 ?</div>';return function(){};},
+              render:function(){window.location.href='games/pattern-breaker/';}, cleanup:function(){}
+            };
+            var BossQuiz = {
+              id:'boss-quiz', title:'Boss Quiz',
+              tagline:'Beat the boss by surviving a fast quiz battle.',
+              previewInit:function(el){el.innerHTML='<div style=\"display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--amber);\">👑 BOSS</div>';return function(){};},
+              render:function(){window.location.href='games/boss-quiz/';}, cleanup:function(){}
+            };
+            var NumberMerge = {
+              id:'number-merge', title:'Number Merge',
+              tagline:'Merge matching numbers and reach the target.',
+              previewInit:function(el){el.innerHTML='<div style=\"display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);\">2 + 2 = 4</div>';return function(){};},
+              render:function(){window.location.href='games/number-merge/';}, cleanup:function(){}
+            };
+
+          """
+          a=s.index('  var GAMES = [')
+          b=s.index('];',a)+2
+          s=s[:a]+replacements+"  var GAMES = [HubPong, HubSolve, PatternBreaker, ReflexTest, PulseTap, SteadyHand, TapSpeed, MemoryMatch, MathRush, SequenceRecall, WordRush, OddOneOut, BossQuiz, NumberMerge];"+s[b:]
+          for old in ('HoldSteady','BalanceTest','BreathingPacer'):
+              if old in s: raise RuntimeError(f'{old} still present')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validate JavaScript
+        run: |
+          python3 - <<'PY'
+          import re
+          s=open('index.html',encoding='utf-8').read()
+          js=re.findall(r'<script(?:[^>]*)>(.*?)</script>',s,re.S|re.I)
+          open('/tmp/index.js','w').write('\n'.join(js))
+          print('inline scripts:',len(js),'chars:',len(open('/tmp/index.js').read()))
+          PY
+          node --check /tmp/index.js
+      - name: Commit replacement
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && echo 'No changes needed' || git commit -m 'fix: replace removed games in original hub'
+          git push

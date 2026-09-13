@@ -1,6 +1,8 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/miniapp.html" }
+    { "source": "/", "destination": "/miniapp.html" },
+    { "source": "/pong", "destination": "/games/pong/index.html" },
+    { "source": "/pong/", "destination": "/games/pong/index.html" }
   ],
   "headers": [
     {

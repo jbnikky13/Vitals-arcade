@@ -1,0 +1,8 @@
+(function(){
+ const seenKey='vitalsArcadeAchievementsSeen';
+ const defs=[['first-play','FIRST PLAY','You started your arcade journey.'],['five-solves','WARM UP','You solved 5 challenges.'],['ten-streak','ON FIRE','You reached a 10-game streak.'],['hundred-xp','GETTING SHARP','You earned 100 XP.'],['thousand-xp','ARCADE REGULAR','You earned 1,000 XP.']];
+ function seen(){try{return JSON.parse(localStorage.getItem(seenKey)||'[]')}catch{return[]}}
+ function check(s){return defs.filter(d=>{if(d[0]==='first-play')return s.plays>=1;if(d[0]==='five-solves')return s.solves>=5;if(d[0]==='ten-streak')return s.bestStreak>=10;if(d[0]==='hundred-xp')return s.xp>=100;return s.xp>=1000})}
+ function show(d){let x=document.getElementById('achievement-toast');if(x)x.remove();x=document.createElement('div');x.id='achievement-toast';x.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:99999;width:min(340px,calc(100vw - 32px));padding:15px 16px;border:1px solid #8fe3c1;border-radius:14px;background:#12293b;color:#eaf2f2;box-shadow:0 12px 30px rgba(0,0,0,.4);font:600 13px system-ui;text-align:center';x.innerHTML='<div style="color:#f2a93b;font-size:11px;letter-spacing:1.5px">🏆 ACHIEVEMENT UNLOCKED</div><strong style="display:block;margin:5px 0;color:#8fe3c1">'+d[1]+'</strong><span style="color:#7f98a3">'+d[2]+'</span>';document.body.appendChild(x);setTimeout(()=>x.remove(),3200)}
+ window.addEventListener('vitals:progress',e=>{const s=e.detail.after||{};const old=seen();const now=check(s);const fresh=now.find(d=>!old.includes(d[0]));if(fresh){localStorage.setItem(seenKey,JSON.stringify([...new Set([...old,fresh[0]])]));show(fresh)}});
+})();

@@ -1,0 +1,62 @@
+name: Vitals Arcade Validation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required arcade files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f index.html
+          test -f shared/arcade-state.js
+          test -f shared/daily-challenge.js
+          test -f shared/arcade-profile.js
+          test -f games/daily/index.html
+          test -f games/solve/index.html
+          test -f games/pong/index.html
+          echo "Required arcade files are present."
+
+      - name: Check shared JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in shared/*.js; do
+            node --check "$file"
+          done
+          echo "Shared JavaScript syntax is valid."
+
+      - name: Check local script references
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html)
+          missing=[]
+          for ref in refs:
+              if ref.startswith(('http://','https://','//')):
+                  continue
+              p=Path(ref.split('?',1)[0])
+              if not p.exists():
+                  missing.append(ref)
+          if missing:
+              raise SystemExit('Missing local script references: '+', '.join(missing))
+          print(f'Checked {len(refs)} script references.')
+          PY
+
+      - name: Validate Vercel configuration
+        shell: bash
+        run: python3 -m json.tool vercel.json >/dev/null

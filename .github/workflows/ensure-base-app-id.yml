@@ -38,14 +38,17 @@ jobs:
               print('Base App ID meta tag already present')
           PY
 
-      - name: Commit homepage verification tag
+      - name: Integrate Pong and Solve in Seconds
+        run: python scripts/integrate-new-games.py
+
+      - name: Commit homepage and hub changes
         run: |
           if git diff --quiet -- index.html; then
-            echo 'No homepage change needed.'
+            echo 'No homepage or hub changes needed.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'chore: add Base app verification meta tag to homepage'
+          git commit -m 'Add Pong and Solve in Seconds to game hub'
           git push

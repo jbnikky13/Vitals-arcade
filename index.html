@@ -1585,6 +1585,11 @@
   var BossQuiz={id:'boss-quiz',title:'Boss Quiz',tagline:'Beat the boss by surviving a fast quiz battle.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--amber);">👑 BOSS</div>';return function(){};},render:function(){window.location.href='games/boss-quiz/';},cleanup:function(){}};
   var NumberMerge={id:'number-merge',title:'Number Merge',tagline:'Merge matching numbers and reach the target.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);">2 + 2 = 4</div>';return function(){};},render:function(){window.location.href='games/number-merge/';},cleanup:function(){}};
 
+  /* Replacement games */
+  var PatternBreaker={id:'pattern-breaker',title:'Pattern Breaker',tagline:'Spot the missing number before the pattern gets harder.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);">2 4 8 16 ?</div>';return function(){};},render:function(){window.location.href='games/pattern-breaker/';},cleanup:function(){}};
+  var BossQuiz={id:'boss-quiz',title:'Boss Quiz',tagline:'Beat the boss by surviving a fast quiz battle.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--amber);">👑 BOSS</div>';return function(){};},render:function(){window.location.href='games/boss-quiz/';},cleanup:function(){}};
+  var NumberMerge={id:'number-merge',title:'Number Merge',tagline:'Merge matching numbers and reach the target.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);">2 + 2 = 4</div>';return function(){};},render:function(){window.location.href='games/number-merge/';},cleanup:function(){}};
+
   var GAMES = [HubPong, HubSolve, PatternBreaker, ReflexTest, PulseTap, SteadyHand, TapSpeed, MemoryMatch, MathRush, SequenceRecall, WordRush, OddOneOut, BossQuiz, NumberMerge];
 
   /* ---------- Hub rendering ---------- */

@@ -660,96 +660,7 @@
   /* ============================================================
      GAME 1: HOLD STEADY  (breath-hold style press & hold)
   ============================================================ */
-  var HoldSteady = {
-    id: 'hold',
-    title: 'Hold Steady',
-    tagline: 'Press and hold as long as you can. Release when you\u2019re done.',
-    previewInit: function(el){
-      el.innerHTML = '<div class="mp-track"></div><div class="mp-marker" style="bottom:8px;top:auto;"></div>';
-      var marker = el.querySelector('.mp-marker');
-      var t = 0;
-      return function(){
-        t += 0.02;
-        var y = (Math.sin(t)*0.5+0.5) * 34;
-        marker.style.bottom = y + 'px';
-      };
-    },
-    zones: [
-      {max:10, name:'NOVICE'},
-      {max:25, name:'CONTENDER'},
-      {max:45, name:'ATHLETE'},
-      {max:Infinity, name:'FREEDIVER'}
-    ],
-    maxScaleSeconds: 50,
-    render: function(){
-      gameTitleEl.textContent = this.title;
-      gameSubEl.textContent = this.tagline;
-      var self = this;
-      stage.innerHTML =
-        '<div class="status-pill" id="hs-status">READY</div>' +
-        '<div class="hold-track-wrap">' +
-          '<div class="hold-track" id="hs-track">' +
-            '<div class="hold-fill" id="hs-fill"></div>' +
-            '<div class="hold-marker" id="hs-marker"></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="big-readout mono" id="hs-time">0.0s</div>' +
-        '<button class="action-btn" id="hs-btn">HOLD</button>' +
-        '<p class="hint">Press and don\u2019t let go. The longer you hold, the further the marker climbs.</p>';
-
-      var btn = stage.querySelector('#hs-btn');
-      var fill = stage.querySelector('#hs-fill');
-      var marker = stage.querySelector('#hs-marker');
-      var timeEl = stage.querySelector('#hs-time');
-      var statusEl = stage.querySelector('#hs-status');
-      var holding = false, startT = 0;
-
-      function tick(){
-        if(!holding) return;
-        var elapsed = (performance.now() - startT)/1000;
-        var pct = Math.min(elapsed / self.maxScaleSeconds, 1) * 100;
-        fill.style.height = pct + '%';
-        marker.style.bottom = pct + '%';
-        timeEl.textContent = elapsed.toFixed(1) + 's';
-        raf(tick);
-      }
-
-      function start(e){
-        e.preventDefault();
-        if(holding) return;
-        holding = true;
-        startT = performance.now();
-        statusEl.textContent = 'HOLDING';
-        statusEl.className = 'status-pill live';
-        btn.textContent = 'RELEASE';
-        raf(tick);
-      }
-      function release(){
-        if(!holding) return;
-        holding = false;
-        var elapsed = (performance.now() - startT)/1000;
-        clearRafs();
-        finish(elapsed);
-      }
-
-      btn.addEventListener('pointerdown', start);
-      window.addEventListener('pointerup', release);
-      btn.addEventListener('pointerleave', function(e){ /* keep holding even if pointer drifts off button */ });
-
-      function finish(elapsed){
-        var tier = self.zones.find(function(z){ return elapsed <= z.max; });
-        var block = tierBlock(self.id, tier.name, 'Held for', elapsed.toFixed(1) + 's');
-        stage.innerHTML = '';
-        stage.appendChild(block);
-        wireResultButtons(block, function(){ self.render(); }, self.id);
-      }
-
-      this._cleanup = function(){
-        window.removeEventListener('pointerup', release);
-      };
-    },
-    cleanup: function(){ if(this._cleanup) this._cleanup(); clearRafs(); }
-  };
+  
 
   /* ============================================================
      GAME 2: REFLEX TEST
@@ -1033,110 +944,7 @@
   /* ============================================================
      GAME 5: BALANCE TEST  (hold pointer still inside a zone)
   ============================================================ */
-  var BalanceTest = {
-    id: 'balance',
-    title: 'Balance Test',
-    tagline: 'Keep your finger still inside the circle for 5 seconds.',
-    previewInit: function(el){
-      el.innerHTML = '<div class="mp-dot"></div>';
-      var dot = el.querySelector('.mp-dot');
-      var t = 0;
-      return function(){
-        t += 0.09;
-        dot.style.transform = 'translate(calc(-50% + ' + (Math.sin(t)*5) + 'px), calc(-50% + ' + (Math.cos(t*1.3)*4) + 'px))';
-      };
-    },
-    durationMs: 5000,
-    tiers: [
-      {max:250, name:'ROCK STEADY'},
-      {max:700, name:'STEADY'},
-      {max:1600, name:'SHAKY'},
-      {max:Infinity, name:'JITTERY'}
-    ],
-    render: function(){
-      gameTitleEl.textContent = this.title;
-      gameSubEl.textContent = this.tagline;
-      var self = this;
-      stage.innerHTML =
-        '<div class="status-pill" id="bal-status">PRESS & HOLD</div>' +
-        '<div class="bal-zone" id="bal-zone"><div class="bal-ring" id="bal-ring"></div><div class="bal-dot"></div></div>' +
-        '<div class="big-readout mono" id="bal-time">5.0s</div>' +
-        '<p class="hint">Press inside the circle and try not to move at all.</p>';
-
-      var zone = stage.querySelector('#bal-zone');
-      var ring = stage.querySelector('#bal-ring');
-      var timeEl = stage.querySelector('#bal-time');
-      var statusEl = stage.querySelector('#bal-status');
-      var holding = false, startT = 0, lastX = 0, lastY = 0, jitter = 0;
-
-      function tick(){
-        if(!holding) return;
-        var elapsed = performance.now() - startT;
-        var remain = Math.max(0, self.durationMs - elapsed);
-        timeEl.textContent = (remain/1000).toFixed(1) + 's';
-        ring.style.setProperty('--p', Math.min(100, (elapsed/self.durationMs)*100));
-        if(elapsed >= self.durationMs){
-          holding = false;
-          clearRafs();
-          finish(jitter);
-          return;
-        }
-        raf(tick);
-      }
-
-      function start(e){
-        e.preventDefault();
-        holding = true;
-        startT = performance.now();
-        jitter = 0;
-        var pt = (e.touches && e.touches[0]) || e;
-        lastX = pt.clientX; lastY = pt.clientY;
-        statusEl.textContent = 'HOLDING';
-        statusEl.className = 'status-pill live';
-        zone.className = 'bal-zone active';
-        raf(tick);
-      }
-      function move(e){
-        if(!holding) return;
-        var pt = (e.touches && e.touches[0]) || e;
-        var dx = pt.clientX - lastX, dy = pt.clientY - lastY;
-        jitter += Math.sqrt(dx*dx + dy*dy);
-        lastX = pt.clientX; lastY = pt.clientY;
-      }
-      function cancel(){
-        if(!holding) return;
-        holding = false;
-        clearRafs();
-        zone.className = 'bal-zone';
-        statusEl.textContent = 'LET GO EARLY';
-        var block = document.createElement('div');
-        block.className = 'result-wrap';
-        block.innerHTML =
-          '<div class="status-pill">INCOMPLETE</div>' +
-          '<div class="result-tier">RESTLESS</div>' +
-          '<p class="hint">Let go too soon \u2014 try to make it the full 5 seconds.</p>' +
-          '<div class="btn-row"><button class="action-btn small" id="play-again">Try again</button>' +
-          '<button class="ghost-btn" id="to-hub">All games</button></div>';
-        stage.innerHTML = '';
-        stage.appendChild(block);
-        wireResultButtons(block, function(){ self.render(); }, self.id);
-      }
-
-      zone.addEventListener('pointerdown', start);
-      zone.addEventListener('pointermove', move);
-      zone.addEventListener('pointerup', cancel);
-      zone.addEventListener('pointerleave', function(){ if(holding) cancel(); });
-
-      function finish(jitterPx){
-        var tier = self.tiers.find(function(t){ return jitterPx <= t.max; });
-        var block = tierBlock(self.id, tier.name, 'Wobble', Math.round(jitterPx) + 'px');
-        stage.innerHTML = '';
-        stage.appendChild(block);
-        wireResultButtons(block, function(){ self.render(); }, self.id);
-      }
-    },
-    cleanup: function(){ clearRafs(); }
-  };
+  
 
   /* ============================================================
      GAME 6: TAP SPEED  (taps in 5 seconds)
@@ -1325,100 +1133,7 @@
   /* ============================================================
      GAME 8: BREATHING PACER  (guided, non-competitive)
   ============================================================ */
-  var BreathingPacer = {
-    id: 'breathing',
-    title: 'Breathing Pacer',
-    tagline: 'Follow the circle: in for 4, hold for 4, out for 4, hold for 4.',
-    previewInit: function(el){
-      el.innerHTML = '<div class="mp-pulse" style="background:var(--trace);"></div>';
-      var p = el.querySelector('.mp-pulse');
-      var t = 0;
-      return function(){
-        t += 0.02;
-        var s = 0.6 + (Math.sin(t)*0.5+0.5)*0.7;
-        p.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
-      };
-    },
-    phaseMs: 4000,
-    totalCycles: 4,
-    render: function(){
-      gameTitleEl.textContent = this.title;
-      gameSubEl.textContent = this.tagline;
-      var self = this;
-      stage.innerHTML =
-        '<div class="status-pill" id="br-status">READY WHEN YOU ARE</div>' +
-        '<div class="breathe-circle" id="br-circle"></div>' +
-        '<div class="breathe-label" id="br-label">BREATHE</div>' +
-        '<div class="breathe-cycles" id="br-cycles">0 of ' + self.totalCycles + ' cycles</div>' +
-        '<button class="action-btn" id="br-btn">START</button>' +
-        '<p class="hint">Sit back and follow the circle for about a minute.</p>';
-
-      var circle = stage.querySelector('#br-circle');
-      var label = stage.querySelector('#br-label');
-      var cyclesEl = stage.querySelector('#br-cycles');
-      var statusEl = stage.querySelector('#br-status');
-      var btn = stage.querySelector('#br-btn');
-      var timeouts = [];
-      var phases = [
-        {name:'BREATHE IN', scale:1.35},
-        {name:'HOLD', scale:1.35},
-        {name:'BREATHE OUT', scale:0.7},
-        {name:'HOLD', scale:0.7}
-      ];
-
-      function runPhase(cycle, phaseIdx){
-        if(cycle >= self.totalCycles){ finish(); return; }
-        var phase = phases[phaseIdx];
-        label.textContent = phase.name;
-        circle.style.transform = 'scale(' + phase.scale + ')';
-        cyclesEl.textContent = cycle + ' of ' + self.totalCycles + ' cycles';
-        timeouts.push(setTimeout(function(){
-          var nextPhase = phaseIdx + 1;
-          var nextCycle = cycle;
-          if(nextPhase >= phases.length){ nextPhase = 0; nextCycle = cycle + 1; }
-          runPhase(nextCycle, nextPhase);
-        }, self.phaseMs));
-      }
-
-      btn.addEventListener('click', function(){
-        btn.remove();
-        statusEl.textContent = 'FOLLOW THE CIRCLE';
-        statusEl.className = 'status-pill live';
-        circle.style.transition = 'transform ' + (self.phaseMs/1000) + 's ease-in-out';
-        runPhase(0, 0);
-      });
-
-      function finish(){
-        statusEl.textContent = 'DONE';
-        var block = document.createElement('div');
-        block.className = 'result-wrap';
-        block.innerHTML =
-          '<div class="status-pill">SESSION COMPLETE</div>' +
-          '<div class="result-tier">NICE RESET</div>' +
-          '<p class="hint">' + TIPS.breathing.DONE + '</p>' +
-          '<div class="mood-row" id="br-mood">' +
-            '<button class="mood-btn" data-m="calmer">Calmer</button>' +
-            '<button class="mood-btn" data-m="same">About the same</button>' +
-            '<button class="mood-btn" data-m="tense">Still tense</button>' +
-          '</div>' +
-          '<div class="btn-row"><button class="action-btn small" id="play-again">Do it again</button>' +
-          '<button class="ghost-btn" id="to-hub">All games</button></div>';
-        stage.innerHTML = '';
-        stage.appendChild(block);
-        wireResultButtons(block, function(){ self.render(); }, self.id);
-        block.querySelectorAll('.mood-btn').forEach(function(mb){
-          mb.addEventListener('click', function(){
-            block.querySelectorAll('.mood-btn').forEach(function(x){ x.style.borderColor = 'var(--line)'; x.style.color = 'var(--text)'; });
-            mb.style.borderColor = 'var(--trace)';
-            mb.style.color = 'var(--trace)';
-          });
-        });
-      }
-
-      this._cleanup = function(){ timeouts.forEach(clearTimeout); };
-    },
-    cleanup: function(){ if(this._cleanup) this._cleanup(); }
-  };
+  
 
   /* ============================================================
      GAME 9: MATH RUSH  (mental arithmetic against the clock)
@@ -1860,7 +1575,12 @@
     cleanup: function(){}
   };
 
-  var GAMES = [HubPong, HubSolve, HoldSteady, ReflexTest, PulseTap, SteadyHand, BalanceTest, TapSpeed, MemoryMatch, BreathingPacer, MathRush, SequenceRecall, WordRush, OddOneOut];
+  /* Replacement games */
+  var PatternBreaker={id:'pattern-breaker',title:'Pattern Breaker',tagline:'Spot the missing number before the pattern gets harder.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);">2 4 8 16 ?</div>';return function(){};},render:function(){window.location.href='games/pattern-breaker/';},cleanup:function(){}};
+  var BossQuiz={id:'boss-quiz',title:'Boss Quiz',tagline:'Beat the boss by surviving a fast quiz battle.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--amber);">👑 BOSS</div>';return function(){};},render:function(){window.location.href='games/boss-quiz/';},cleanup:function(){}};
+  var NumberMerge={id:'number-merge',title:'Number Merge',tagline:'Merge matching numbers and reach the target.',previewInit:function(el){el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:800;color:var(--trace);">2 + 2 = 4</div>';return function(){};},render:function(){window.location.href='games/number-merge/';},cleanup:function(){}};
+
+  var GAMES = [HubPong, HubSolve, PatternBreaker, ReflexTest, PulseTap, SteadyHand, TapSpeed, MemoryMatch, MathRush, SequenceRecall, WordRush, OddOneOut, BossQuiz, NumberMerge];
 
   /* ---------- Hub rendering ---------- */
   var previewTickers = [];

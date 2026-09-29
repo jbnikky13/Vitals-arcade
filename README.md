@@ -1,59 +1,51 @@
 # Vitals Arcade
 
-A single-file web app: a hub of eight quick timing/reflex/memory mini-games, plus a "Buy me a coffee" support section and a suggestion box for feedback. Just-for-fun arcade games — not medical tests.
+A playful, mobile-first web arcade of **14 quick mini-games** for reflexes, timing, memory, focus, numbers, words, and logic.
 
-**Games:** Hold Steady, Reflex Test, Pulse Tap, Steady Hand, Balance Test, Tap Speed, Memory Match, Breathing Pacer.
+The hub now uses a bright cartoon arcade style with chunky cards, playful motion, and an animated scene of arcade cabinets and players instead of the old ECG/medical-style header.
 
-## Before you upload: fill in your payment details
+**Games**
+- Neon Pong
+- Solve in Seconds
+- Pattern Breaker
+- Reflex Test
+- Pulse Tap
+- Steady Hand
+- Tap Speed
+- Memory Match
+- Math Rush
+- Sequence Recall
+- Word Rush
+- Odd One Out
+- Boss Quiz
+- Number Merge
 
-Open `index.html`, search for `DONATE CONFIG` (near the top of the `<script>` block), and edit:
+> **Important:** Vitals Arcade is entertainment only. It is not a medical device and game scores are not clinical measurements.
 
-```js
-var DONATE = {
-  paystackLink: 'https://paystack.com/pay/your-page-slug',
-  binance: {
-    qrImage: 'data:image/png;base64,...',  // already filled in with your QR
-    binancePayId: 'Blockchain enthusiastic'
-  }
-};
-```
+## Running
 
-**Paystack ("Card / Bank")** —
-1. Sign up free at [paystack.com](https://paystack.com) (supports businesses based in Nigeria, Ghana, South Africa, Kenya, and a few other African markets — but **payers can be from anywhere in the world**, paying by card).
-2. In the dashboard: **Revenue → Payment Pages → Create page**. Set an amount or let visitors choose, give it a name.
-3. Copy the generated `https://paystack.com/pay/...` link and paste it into `paystackLink` above.
+This is a single-file web app. Open `index.html` directly in a browser or deploy it as a static site. No build step is required.
 
-**Binance Pay** — already set up with your QR code baked into the file. Nothing to do unless you want to swap it for a new one later (see the note in the code comments).
+## Support
 
-We removed the PayPal option since PayPal.me isn't reliably available for Nigeria-based accounts yet — Paystack is the more dependable option for you right now, and it settles directly without needing a middleman app.
+The Support panel contains the existing Paystack and Binance Pay configuration. Update the donation configuration in `index.html` if you need to change the payment details.
 
-## Set up the suggestion box (optional)
+## Suggestions
 
-Search for `FEEDBACK CONFIG` in `index.html`:
+The Suggest panel supports the existing feedback configuration in `index.html`. You can use the configured endpoint or email fallback.
 
-```js
-var FEEDBACK = {
-  endpoint: '',                 // e.g. 'https://formspree.io/f/xxxxxxx'
-  email: 'you@example.com'
-};
-```
+## Design direction
 
-- **Simplest:** leave `endpoint` blank and set `email` to your address — the form will open the visitor's email app pre-filled with their message.
-- **No email client needed:** sign up free at [formspree.io](https://formspree.io), create a form, and paste its endpoint URL into `endpoint`. Submissions will show up in your Formspree dashboard/email instead of requiring the visitor to send anything themselves.
+The current hub is intentionally:
+- Bright and cartoonish
+- Touch-friendly
+- Mobile-first
+- Fast to understand
+- Game-focused rather than medical-looking
+- Animated without requiring heavy assets
 
-## Running it
+The arcade scene is built with HTML/CSS, so there is no external image asset to load for the main hero animation.
 
-Just open `index.html` in a browser — no build step, no server needed.
+## Accessibility
 
-## Uploading to GitHub (private repo)
-
-1. Go to [github.com/new](https://github.com/new).
-2. Name the repo (e.g. `vitals-arcade`).
-3. Set visibility to **Private**.
-4. Click **Create repository**.
-5. On the next page, click **uploading an existing file**.
-6. Drag `index.html` (and this `README.md`) into the upload area.
-7. Scroll down, add a commit message, click **Commit changes**.
-
-That's it — no git command line needed. If you later want it live as a public webpage (GitHub Pages requires the repo to be public, or a paid plan for private Pages), let me know and I can walk you through that too.
-
+The app respects `prefers-reduced-motion` by disabling decorative animations when requested by the device/browser.
